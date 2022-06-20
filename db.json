@@ -1,0 +1,16 @@
+{
+  "topics": [
+    {
+      "id": 1,
+      "title": "json-server",
+      "body": "hella fun",
+      "author": "typicode"
+    },
+    {
+      "id": 2,
+      "title": "react-server",
+      "body": "react fun",
+      "author": "typicode"
+    }
+  ]
+}
