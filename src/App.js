@@ -63,7 +63,46 @@ function Control(){
   }
   return <ul>
       <li><Link to="/create">Create</Link></li>
+      {contextUI}
     </ul>
+}
+
+function Update(){
+  const param = useParams();
+  const id = Number(param.id);
+  const [title, setTitle] = useState(null);
+  const [body, setBody] = useState(null);
+  const refreshTopic = async ()=>{
+    const resp = await fetch(`http://localhost:3333/topics/`+id);
+    const result = await resp.json();
+    setTitle(result.title);
+    setBody(result.body);
+  }
+  useEffect(()=>{
+    refreshTopic();
+  },[id]);
+
+  const navigate = useNavigate();
+  const submitHandler = async (evt)=>{
+    evt.preventDefault();
+    const title = evt.target.title.value;
+    const body = evt.target.body.value;
+    const resp = await fetch(`http://localhost:3334/topics`,{
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({title, body})
+    })
+    const result = await resp.json();
+    navigate('/read/'+result.id);
+  }
+  return <form onSubmit={submitHandler}>
+    <h2>Update</h2>
+    <p><input type="text" name="title" placeholder="title" value={title}></input></p>
+    <p><textarea name="body" placeholder="body" value={body}></textarea></p>
+    <p><input type="submit" value="create" /></p>
+  </form>
 }
 function App() {
   const [topics, setTopics] = useState([])
@@ -88,6 +127,7 @@ function App() {
         </Route>
         <Route path='/read/:id' element={<Read></Read>}></Route>
         <Route path='/create' element={<Create></Create>}></Route>
+        <Route path='/update/:id' element={<Update></Update>}></Route>
       </Routes>
       <Routes>
         {['/', '/read/:id', '/create'].map(e=>{
