@@ -1,79 +1,69 @@
-
-import {useEffect, useState} from 'react'
-import {Link, Route, Routes,useNavigate, useParams} from 'react-router-dom'
-function Header() {
-  return <header><h1><Link to='/'>WEB</Link></h1></header>
+import {useState,useEffect} from 'react';
+import {Link, Routes, Route, useParams, useNavigate} from 'react-router-dom';
+function Header(){
+  return <header><h1><Link to="/">WEB</Link></h1></header>
 }
-function Nav(props) {
-  return <nav><ol>{props.data.map((item) => {
-    return <li key={item.id}><Link to={`/read/${item.id}`}>{item.title}</Link></li>
+function Nav(props){
+  return <nav><ol>{props.data.map(e=>{
+    return <li key={e.id}><Link to={`/read/${e.id}`}>{e.title}</Link></li>
   })}</ol></nav>
 }
-function Read() {
-  const param = useParams()
-  const id = Number(param.id)
-  const [topic, setTopic] = useState([{title:null, body: null}])
-  const refreshTopic = async () => {
-    const res = await fetch(`http://localhost:3333/topics/`+id);
-    const result = await res.json()
-    setTopic(result)
+
+function Read(props){
+  const param = useParams();
+  const id = Number(param.id);
+  const [topic, setTopic] = useState({title:null, body:null});
+  const refreshTopic = async ()=>{
+    const resp = await fetch('http://localhost:3333/topics/'+id);
+    const result = await resp.json();
+    setTopic(result);
   }
- 
-  useEffect(() => {
-    refreshTopic()
-  }, [id]) 
-
-
-  return <article><h2>{topic.title}</h2>{topic.body}</article>
+  useEffect(()=>{
+    refreshTopic();
+  },[id]);
+  return <article>
+    <h2>{topic.title}</h2>
+    {topic.body}
+  </article>
 }
-
-function Create() {
-  const nagivate = useNavigate()
-  const submitHandler = async (evt) => {
-    evt.preventDefault();
+function Create(props){  
+  const submitHandler = async (evt)=>{
+    evt.preventDefault();    
     const title = evt.target.title.value;
     const body = evt.target.body.value;
-
-    const res = await fetch('http://localhost:3333/topics', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({title, body})
-    })
-    const result = await res.json()
-    nagivate('/read/' + result.id)
-
+    props.onCreate(title, body);    
   }
-
   return <form onSubmit={submitHandler}>
     <h2>Create</h2>
-    <p><input type="text" name="title" placeholder='title'></input></p>
-    <p><textarea name='body' placeholder='body'></textarea></p>
-    <p><input type="submit" value="create"></input></p>
+    <p><input type="text" name="title" placeholder="title"></input></p>
+    <p><textarea name="body" placeholder="body"></textarea></p>
+    <p><input type="submit" value="create" /></p>
   </form>
 }
-
-function Control(){
+function Control(props){
   const param = useParams();
-  const id = Number(param.id)
+  const id = Number(param.id);
   let contextUI = null;
-  if (id) {
-    contextUI = <><Link to={'/update/' + id}>Update</Link></>
+  if(id){
+    contextUI = <>
+      <Link to={'/update/'+id}>Update</Link>
+      <button onClick={()=>{
+        props.onDelete(id);
+      }}>delete</button>
+    </>
   }
   return <ul>
-      <li><Link to="/create">Create</Link></li>
-      {contextUI}
-    </ul>
+    <li><Link to="/create">Create</Link></li>
+    {contextUI}
+  </ul>
 }
-
-function Update(){
+function Update(props){
   const param = useParams();
   const id = Number(param.id);
   const [title, setTitle] = useState(null);
   const [body, setBody] = useState(null);
   const refreshTopic = async ()=>{
-    const resp = await fetch(`http://localhost:3333/topics/`+id);
+    const resp = await fetch('http://localhost:3333/topics/'+id);
     const result = await resp.json();
     setTitle(result.title);
     setBody(result.body);
@@ -81,13 +71,38 @@ function Update(){
   useEffect(()=>{
     refreshTopic();
   },[id]);
-
+  
   const navigate = useNavigate();
   const submitHandler = async (evt)=>{
-    evt.preventDefault();
+    evt.preventDefault();    
     const title = evt.target.title.value;
     const body = evt.target.body.value;
-    const resp = await fetch(`http://localhost:3334/topics`,{
+    props.onUpdate(id,title,body)    
+  }
+  return <form onSubmit={submitHandler}>
+    <h2>Update</h2>
+    <p><input type="text" name="title" placeholder="title" value={title} onChange={(evt)=>{
+      setTitle(evt.target.value);
+    }}></input></p>
+    <p><textarea name="body" placeholder="body" value={body} onChange={evt=>{
+      setBody(evt.target.value);
+    }}></textarea></p>
+    <p><input type="submit" value="update" /></p>
+  </form>
+}
+function App() {
+  const navigate = useNavigate();
+  const [topics, setTopics] = useState([]);
+  const refreshTopics = async ()=>{
+    const resp = await fetch('http://localhost:3333/topics');
+    const result = await resp.json();
+    setTopics(result);
+  }
+  useEffect(()=>{
+    refreshTopics();
+  },[]);
+  const createHandler = async (title, body)=>{
+    const resp = await fetch('http://localhost:3333/topics',{
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -96,48 +111,44 @@ function Update(){
     })
     const result = await resp.json();
     navigate('/read/'+result.id);
+    refreshTopics();
   }
-  return <form onSubmit={submitHandler}>
-    <h2>Update</h2>
-    <p><input type="text" name="title" placeholder="title" value={title}></input></p>
-    <p><textarea name="body" placeholder="body" value={body}></textarea></p>
-    <p><input type="submit" value="create" /></p>
-  </form>
-}
-function App() {
-  const [topics, setTopics] = useState([])
-  const refreshTopics = async () => {
-    const res = await fetch(`http://localhost:3333/topics`);
-    const result = await res.json()
-    setTopics(result)
+  const updateHandler = async (id,title,body)=>{
+    const resp = await fetch('http://localhost:3333/topics/'+id,{
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({title, body})
+    })
+    const result = await resp.json();
+    navigate('/read/'+result.id);
+    refreshTopics();
   }
- 
-  useEffect(() => {
-    refreshTopics()
-  }, []) 
-
-  // console.log(topics)
+  const deleteHandler = async (id)=>{
+    const resp = await fetch('http://localhost:3333/topics/'+id,{
+      method: 'DELETE'
+    })
+    const result = await resp.json();
+    navigate('/');
+    refreshTopics();
+  }
   return (
-    <div className="App">
+    <div>
       <Header></Header>
       <Nav data={topics}></Nav>
       <Routes>
-        <Route path='/' element={<><h2>Welcome</h2>Hello React!</>}>
-        
-        </Route>
-        <Route path='/read/:id' element={<Read></Read>}></Route>
-        <Route path='/create' element={<Create></Create>}></Route>
-        <Route path='/update/:id' element={<Update></Update>}></Route>
+        <Route path="/" element={<><h2>Welcome</h2>Hello, React!</>}></Route>
+        <Route path="/read/:id" element={<Read></Read>}></Route>
+        <Route path="/create" element={<Create onCreate={createHandler}></Create>}></Route>
+        <Route path="/update/:id" element={<Update onUpdate={updateHandler}></Update>}></Route>
       </Routes>
       <Routes>
         {['/', '/read/:id', '/create'].map(e=>{
-          return <Route key={e} path={e} element={<Control></Control>}></Route>
+          return <Route key={e} path={e} element={<Control onDelete={deleteHandler}></Control>}></Route>
         })}
       </Routes>
-
-      <Control></Control>
     </div>
-
   );
 }
 
